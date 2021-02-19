@@ -1,0 +1,603 @@
+type: edu
+custom_name: Error!
+files:
+- name: src/bullscows/Main.java
+  visible: true
+  text: |-
+    package bullscows;
+
+    public class Main {
+        public static void main(String[] args) {
+            System.out.println("The secret code is prepared: ****.");
+            System.out.println("\nTurn 1. Answer:");
+            System.out.println("1234");
+            System.out.println("Grade: None.");
+            System.out.println("\nTurn 2. Answer:");
+            System.out.println("9876");
+            System.out.println("Grade: 4 bulls.");
+            System.out.println("Congrats! The secret code is 9876.");
+        }
+    }
+  learner_created: false
+- name: test/BullsCowsTest.java
+  visible: false
+  text: |-
+    import bullscows.Main;
+    import org.hyperskill.hstest.dynamic.input.DynamicTestingMethod;
+    import org.hyperskill.hstest.exception.outcomes.WrongAnswer;
+    import org.hyperskill.hstest.stage.StageTest;
+    import org.hyperskill.hstest.testcase.CheckResult;
+    import org.hyperskill.hstest.testing.TestedProgram;
+
+    import java.util.Arrays;
+    import java.util.regex.Matcher;
+    import java.util.regex.Pattern;
+
+    public class BullsCowsTest extends StageTest<String> {
+
+        // base test with 1 digit number
+        @DynamicTestingMethod
+        CheckResult test1() {
+            TestedProgram main = new TestedProgram();
+            main.start();
+
+            String output;
+            int gotAnswer = 0;
+            main.execute("1");
+            main.execute("10");
+
+            for (int i = 0; i <= 9; i++) {
+                if (main.isFinished()) {
+                    break; // if game has stopped, stop cycle and start check of results;
+                }
+                output = main.execute(Integer.toString(i));
+                int[] result = getNumOfBullsAndCows(output);
+                if (result[0] == 1) {
+                    gotAnswer++; // if got a bull, count for an amount of answers
+                }
+            }
+
+            // if we got less or more than 1 answer, the program work is incorrect
+            if (gotAnswer != 1) {
+                return CheckResult.wrong("The game has no answer or more than one. ");
+            }
+
+            return CheckResult.correct();
+        }
+
+        // standard bulls and cows game
+        @DynamicTestingMethod
+        CheckResult test2() {
+            TestedProgram main = new TestedProgram();
+            main.start();
+            main.execute("4");
+            String output = main.execute("10");
+            secretCheck(output, 4, 10);
+
+            Character[] usedSymbols = getUsedSymbols(main, 4);
+            boolean check = getPermutations(main, 4, usedSymbols);
+
+            if (!check && main.isFinished()) {
+                return CheckResult.wrong("The program has finished before the answer was found");
+            }
+
+            if (!check) {
+                return CheckResult.wrong("The program has finished before the answer was found. " +
+                        "It means that your game was broken (we used length 4 and 10 symbols).");
+            }
+
+            if (!main.isFinished()) {
+                return CheckResult.wrong("The program didn't finish after " +
+                        "the answer was found");
+            }
+
+            return CheckResult.correct();
+        }
+
+        // max length we can check
+        @DynamicTestingMethod
+        CheckResult test3() {
+            TestedProgram main = new TestedProgram();
+            main.start();
+            main.execute("6");
+            String output = main.execute("10");
+            secretCheck(output, 6, 10);
+
+            Character[] usedSymbols = getUsedSymbols(main, 6);
+            boolean check = getPermutations(main, 6, usedSymbols);
+
+            if (!check && main.isFinished()) {
+                return CheckResult.wrong("The program has finished before the answer was found");
+            }
+
+            if (!check) {
+                return CheckResult.wrong("The program has finished before the answer was found. " +
+                        "It means that your game was broken (we used length 6 and 10 symbols).");
+            }
+
+            if (!main.isFinished()) {
+                return CheckResult.wrong("The program didn't finish after " +
+                        "the answer was found");
+            }
+
+            return CheckResult.correct();
+        }
+
+        // length limit check
+        @DynamicTestingMethod
+        CheckResult test4() {
+            TestedProgram main = new TestedProgram();
+            main.start();
+            String output = main.execute("11");
+            output = main.execute("10");
+
+            if (output.toLowerCase().contains("error")) {
+                return CheckResult.correct();
+            } else {
+                return CheckResult.wrong("The testing system waited for a error message " +
+                        "(the message should contain a word \"error\").");
+            }
+        }
+
+        // this stage test
+        @DynamicTestingMethod
+        CheckResult test5() {
+            TestedProgram main = new TestedProgram();
+            main.start();
+            main.execute("4");
+            String output = main.execute("16");
+            secretCheck(output, 4, 16);
+
+            Character[] usedSymbols = getUsedSymbols(main, 4);
+            boolean check = getPermutations(main, 4, usedSymbols);
+
+            if (!check && main.isFinished()) {
+                return CheckResult.wrong("The program has finished before the answer was found. " +
+                        "It means that your game was broken (we used length 4 and 16 symbols).");
+            }
+
+            if (!main.isFinished()) {
+                return CheckResult.wrong("The program didn't finish after " +
+                        "the answer was found");
+            }
+
+            return CheckResult.correct();
+        }
+
+        // test of usage of full dictionary
+        @DynamicTestingMethod
+        CheckResult test6() {
+            TestedProgram main = new TestedProgram();
+            main.start();
+
+            main.execute("6");
+            String output = main.execute("36");
+            secretCheck(output, 6, 36);
+
+            Character[] usedSymbols = getUsedSymbols(main, 6);
+            boolean check = getPermutations(main, 6, usedSymbols);
+
+            if (!check && main.isFinished()) {
+                return CheckResult.wrong("The program has finished before the answer was found. " +
+                        "It means that your game was broken (we used length 6 and 36 symbols).");
+            }
+
+            if (!main.isFinished()) {
+                return CheckResult.wrong("The program didn't finish after " +
+                        "the answer was found");
+            }
+
+            return CheckResult.correct();
+        }
+
+        // tested incorrect word's length
+        @DynamicTestingMethod
+        CheckResult test7() {
+            TestedProgram main = new TestedProgram();
+            main.start();
+            String output = main.execute("0");
+
+            if (!main.isFinished()) {
+                output = main.execute("1");
+            }
+
+            if (!main.isFinished()) {
+                return CheckResult.wrong("The program continued work after an incorrect input.");
+            }
+
+            if (!output.toLowerCase().contains("error")) {
+                return CheckResult.wrong("The testing system waited for a error message " +
+                        "(the message should contain a word \"error\").");
+            }
+
+            return CheckResult.correct();
+        }
+
+        // the dictionary is less than word's length
+        @DynamicTestingMethod
+        CheckResult test8() {
+            TestedProgram main = new TestedProgram();
+            main.start();
+            main.execute("10");
+            main.execute("9");
+
+            if (!main.isFinished()) {
+                return CheckResult.wrong("The program continued work after an incorrect input.");
+            }
+
+            return CheckResult.correct();
+        }
+
+        // test of dictionary's limit
+        @DynamicTestingMethod
+        CheckResult test9() {
+            TestedProgram main = new TestedProgram();
+            main.start();
+            String output;
+            main.execute("9");
+            output = main.execute("37");
+
+            if (!main.isFinished()) {
+                return CheckResult.wrong("The program continued work after an incorrect input.");
+            }
+
+            if (!output.toLowerCase().contains("error")) {
+                return CheckResult.wrong("The testing system waited for a error message " +
+                        "(the message should contain a word \"error\").");
+            }
+
+            return CheckResult.correct();
+        }
+
+        // test of words input
+        @DynamicTestingMethod
+        CheckResult test10() {
+            TestedProgram main = new TestedProgram();
+            main.start();
+            String output;
+            output = main.execute("abcdefg 1 -6");
+
+            if (!main.isFinished()) {
+                return CheckResult.wrong("The program continued work after an incorrect input.");
+            }
+
+            if (!output.toLowerCase().contains("error")) {
+                return CheckResult.wrong("The testing system waited for a error message " +
+                        "(the message should contain a word \"error\").");
+            }
+
+            return CheckResult.correct();
+        }
+
+
+        void secretCheck(String output, int length, int dictLen) {
+            String secret = new String(new char[length]).replace('\0', '*');
+            output = output.toLowerCase();
+
+            if (!output.contains(secret)) {
+                throw new WrongAnswer("The length of secret code is incorrect.");
+            }
+
+            String firstChar = "0";
+            String lastChar;
+            if (dictLen <= 10) {
+                lastChar = "" + ((char) (47 + dictLen));
+            } else {
+                lastChar = "" + ((char) (86 + dictLen));
+            }
+
+            if (!(output.contains(firstChar) && output.contains(lastChar))) {
+                throw new WrongAnswer("The range of possible symbols " +
+                        "in the secret code is incorrect. " +
+                        "For the " + dictLen + " possible symbols " +
+                        "the last symbol should be '" + lastChar + "'.");
+            }
+        }
+
+
+        Character[] getUsedSymbols(TestedProgram main, int length) {
+            Character[] symbols = new Character[length];
+            char[] dictionary = new char[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+                    'u', 'v', 'w', 'x', 'y', 'z'};
+            int[] result;
+
+            int index = 0;
+            String input;
+            String output;
+
+            for (char c : dictionary) {
+                input = new String(new char[length]).replace('\0', c);
+                output = main.execute(input);
+                result = getNumOfBullsAndCows(output);
+
+                if (result[0] > 1) {
+                    throw new WrongAnswer("Seems like " +
+                            "the calculation of bulls isn't right. " +
+                            "For the guess \"" + input + "\" there can be 1 bull at max.");
+                }
+
+                if (result[0] == 1) {
+                    symbols[index++] = c;
+                }
+
+                if (index == length) {
+                    break;
+                }
+            }
+
+            if (index != length) {
+                throw new WrongAnswer(
+                        "Output should contain " + length + " bulls " +
+                        "summarized as every option was tried. Found: " + index
+                );
+            }
+
+            return symbols;
+        }
+
+
+        // permutations one by one
+        public boolean getPermutations(TestedProgram main, int length, Character[] elements) {
+            int[] indexes = new int[length];
+            for (int i = 0; i < length; i++) {
+                indexes[i] = 0;
+            }
+
+            String output = main.execute(Arrays.toString(elements).replaceAll("\\[|\\]|, ", ""));
+            int[] result = getNumOfBullsAndCows(output);
+            if (result[0] == length) {
+                return true;
+            }
+
+            int i = 0;
+            while (i < length) {
+                if (indexes[i] < i) {
+                    swap(elements, i % 2 == 0 ? 0 : indexes[i], i);
+                    output = main.execute(Arrays.toString(elements).replaceAll("\\[|\\]|, ", ""));
+                    result = getNumOfBullsAndCows(output);
+                    if (result[0] == length) {
+                        return true;
+                    }
+                    indexes[i]++;
+                    i = 0;
+                } else {
+                    indexes[i] = 0;
+                    i++;
+                }
+            }
+            return false;
+        }
+
+        // get number of bulls and cows from user program's output
+        int[] getNumOfBullsAndCows(String userString) {
+            Matcher nonePattern = Pattern.compile("\\b[nN]one\\b").matcher(userString);
+            Matcher cowsPattern = Pattern.compile("\\b\\d [cC]ow").matcher(userString);
+            Matcher bullsPattern = Pattern.compile("\\b\\d [bB]ull").matcher(userString);
+            Pattern oneNumPattern = Pattern.compile("\\d");
+
+            if (nonePattern.find()) {
+                return new int[]{0, 0};
+            }
+
+            int[] ans = {0, 0};
+            boolean found = false;
+
+            if (bullsPattern.find()) {
+                String temp = bullsPattern.group();
+                Matcher oneNumBulls = oneNumPattern.matcher(temp);
+                oneNumBulls.find();
+                ans[0] = Integer.parseInt(oneNumBulls.group());
+                found = true;
+            }
+
+            if (cowsPattern.find()) {
+                String temp = cowsPattern.group();
+                Matcher oneNumCows = oneNumPattern.matcher(temp);
+                oneNumCows.find();
+                ans[1] = Integer.parseInt(oneNumCows.group());
+                found = true;
+            }
+
+            if (!found) {
+                throw new WrongAnswer(
+                        "Cannot find number of bulls or number of cows or None after the input."
+                );
+            }
+
+            return ans;
+        }
+
+        private static void swap(Character[] input, int a, int b) {
+            char tmp = input[a];
+            input[a] = input[b];
+            input[b] = tmp;
+        }
+    }
+  learner_created: false
+- name: src/bullscows/Randomm.java
+  visible: true
+  text: |-
+    package bullscows;
+
+    import java.net.SecureCacheResponse;
+    import java.util.ArrayList;
+    import java.util.Collections;
+    import java.util.List;
+    import java.util.Scanner;
+
+    public class Randomm{
+        public int symbolsLength = 0; // zmienna typu int do ktorej przypisuje ilosc symboli którą chce gracz
+        public int getLengthFromUser() { // Funkcja pobierająca z klawiatury informacje o długości kodu
+            Scanner scanner = new Scanner(System.in);
+            int length = scanner.nextInt();
+            if (length < 36) {
+                return length;
+            } else {
+                System.out.println("Error: can't generate a secret number with a length of " + length + " because there aren't enough unique digits.");
+                return 0;
+            }
+        }
+
+        public String randomGenerator(int length) { // generator kodu
+            StringBuilder result = new StringBuilder(); // użycie stringbuildera do ktorego przypisywany bedzie kod
+            Numbers randomNumber = new Numbers(); // stworzenie obiektu klasy Numbers w ktorej zaimportowałem Random
+            String symbols = "0123456789abcdefghijklmnopqrstuvwxyz"; // String który posiada w sobie wszystkie mozliwe symbole
+            int range = getNumberOfSymbols(); // przypisanie do zmiennej typu int przedziału w jakim gracz chce mieć symbole
+            symbols = symbols.substring(0,range); // Skrócenie Stringa ze wszystkimi symbolami w przedziale jaki wyznaczył gracz
+            for (int i = 0; i < length; i++) { // pętla w której tworzyć będą się symbole kodu
+                int randomizer = randomNumber.randnum.nextInt(range); // zmienna typu int która korzysta z random w danym przez gracza przedziale i wynajduje losowy symbol
+                String myStr = result.toString(); // Przeniesienie StringBuildera do Stringa w celu porównania
+                int rando = randomizer; // zmienna typu int w ktorej przechowuje wartosc losową ze zmiennej randomizer
+                StringBuilder symbolThatMightBeIn = new StringBuilder(); // Stworzenie StringBuildera którego użyje do porównywania
+                symbolThatMightBeIn.append(symbols.charAt(rando)); // dodanie do StringBuildera wylosowanego symbolu
+                while (myStr.contains(symbolThatMightBeIn)) { // pętla while która nie kończy się dopóki w Stringu znajduje się już taki sam symbol
+                    randomizer = randomNumber.randnum.nextInt(range); // co pętle znalezienie losowego indeksu do pobrania symbolu
+                    rando = randomizer;
+                    symbolThatMightBeIn.deleteCharAt(0); // ze stringBuildera usuwam pobrany wczesniej znak poniewaz juz wystepuje
+                    symbolThatMightBeIn.append(symbols.charAt(rando)); // i przypisuje nowy z nowo pobranego indeksu, jezeli juz jest to pętla wykona się znów
+                }
+                result.append(symbols.charAt(rando)); // po znalezieniu symbolu którego jeszcze nie ma dodajemy go do StringBuildera do ktorego przypisany bedzie kod
+            }
+            return result.toString(); // Zwrócenie gotowego kodu
+        }
+
+        public void launchRandom() { // funkcja wykorzystywana w stage 1-3 w celu odpalenia programu // TODO: w przyszłości starac sie upchac w to caly kod
+            int length = getLengthFromUser();
+            if (length != 0) {
+                System.out.println("The random secret number is " + randomGenerator(length));
+            } else {
+                System.out.println("Error: can't generate a secret number with a length of " + length + " because there aren't enough unique digits.");
+            }
+        }
+        public int getNumberOfSymbols() { // Funkcja przyjmująca z klawiatury ilość możliwych symboli w sekretnym kodzie
+            Scanner scanner = new Scanner(System.in);
+            int symb = scanner.nextInt();
+            symbolsLength = symb; // przypisanie tej wartosci rowniez do zmiennej globalnej
+            return symb;
+        }
+        public void preparingCode(int length1, int lenght2) { // Funkcja mająca na celu stworzenie Zdania o przygotowywaniu kodu
+            System.out.print("The secret is prepared: ");
+            for (int i = 0; i < length1; i++) { // pętla wypełniająca sztucznie gwiazdkami luki po symbolach
+                System.out.print("*");
+            }
+            String symbols = "abcdefghijklmnopqrstuvwxyz"; // Wszystkie możliwe litery jako String
+            char[] symb = symbols.toCharArray(); // Przeniesienie symboli do tablicy znakowej
+            System.out.print(" (0-9), ");
+            if (lenght2 > 10) { // jesli ilosc symboli pozwala na zawarcie liter to
+                for (int j = 0; j < lenght2 - 10; j++) { // wykonujemy pętle która wczyta litery (ilosc symboli - 10 cyfr daje ilosc mozliwych liter)
+                    if (j == 0) { // jezeli indeks wynosi 0 to wypisujemy pierwszą literę czyli a
+                        System.out.print("a");
+                    } else  if (j == lenght2 - 11) { // następnie wypisujemy pauze oraz ostatni znak i kończymy Stringa w momencie gdy jestesmy na koncu pętli
+                        System.out.print("-" + symb[j]+ ").");
+                    }
+                }
+            }
+
+        }
+    }
+  learner_created: true
+- name: src/bullscows/BullsAndCows.java
+  visible: true
+  text: |-
+    package bullscows;
+
+    import java.util.Scanner;
+
+    public class BullsAndCows {
+
+        public String secretCode;
+        public int bullsCounter = 0;
+        public BullsAndCows() {
+
+        }
+
+        public void launch(int length) { // funkcja majaca na celu rozegranie gry oraz ocenienie ruchu gracza
+            boolean isActive = true;
+            int turn = 1;
+            do {
+                System.out.println("Turn " + turn + ":");
+                turn++;
+                String userGuess = guess();
+                grade(userGuess, length); // Ocenienie gracza
+                if (bullsCounter == length) { // jezeli ilosc bulls jest równa ilosci symboli kodu to gracz wygrał i zakonczyl gre
+                    System.out.println("Congratulations! You guessed the secret code.");
+                    isActive = false;
+                }
+                bullsCounter = 0; // co ruch ustawiam licznik bulls na 0
+            }while (isActive);
+
+        }
+
+
+        private String guess() { // funkcja pobierająca mozliwe rozwiazanie od uzytkownika
+            Scanner scanner = new Scanner(System.in);
+
+            String guess;
+            /*while (!isValidGuess(guess = scanner.next())) {
+                System.out.println("Your guess should be a 4-digit number.");
+            }*/
+            return guess = scanner.next();
+        }
+
+        private boolean isValidGuess(String userGuess, int length) {
+            return userGuess.length() == length;
+        } // sprawdzenie czy mozliwe rozwiazanie uzytkownika nie jest dluzsze niz kod
+
+        private void grade(String userGuess, int length) { // funkcja oceniajaca czy mozliwe rozwiazanie pokrywa sie z sekretnym kodem
+            int numberOfBulls = 0;
+            int numberOfCows = 0;
+
+            for (int i = 0; i < length; i++) {
+                if (secretCode.charAt(i) == userGuess.charAt(i)) { // jesli znak uzytkownika jest taki sam i w tym samym miejscu co w kodzie
+                    numberOfBulls++; // to zwiekszam ilosc bulls
+                    bullsCounter++;
+                }
+                for (int j = 0; j < length; j++) { // jesli znak uzytkownika jest taki sam ale w innym miejscu co w kodzie
+                    if (userGuess.charAt(j) == secretCode.charAt(i) && i != j) {
+                        numberOfCows++; // to zwiekszam ilosc cows
+                    }
+                }
+            }
+            printGrade(numberOfBulls, numberOfCows); // Wypisuje ocene a nastepnie ustawiam ilosc bulls i cows spowrotem na 0
+            numberOfBulls = 0;
+            numberOfCows = 0;
+
+        }
+
+        private void printGrade(int numberOfBulls, int numberOfCows) { // Funkcja oceniajaca gracza w zaleznosci od uzyskanych punktow
+            if (numberOfBulls == 0 && numberOfCows == 0) {
+                System.out.println("Grade: None.");
+            } else if (numberOfBulls > 0 && numberOfCows == 0) {
+                System.out.println("Grade: " + numberOfBulls + " bull(s).");
+            } else if (numberOfBulls == 0 && numberOfCows > 0) {
+                System.out.println("Grade: " + numberOfCows + " cow(s).");
+            } else {
+                System.out.println("Grade: " + numberOfBulls + " bull(s) and " + numberOfCows + " cow(s).");
+            }
+        }
+    }
+  learner_created: true
+- name: src/bullscows/Numbers.java
+  visible: true
+  text: |
+    package bullscows;
+
+    import java.util.Random;
+
+    public class Numbers {
+        Random randnum;
+
+        public Numbers() {
+            randnum = new Random();
+        }
+
+    }
+  learner_created: true
+feedback_link: https://hyperskill.org/projects/53/stages/293/implement#comment
+status: Solved
+feedback:
+  message: Congratulations! Continue on <a href="https://hyperskill.org/projects/53/stages/293/implement">JetBrains
+    Academy</a>
+  time: Fri, 19 Feb 2021 20:20:36 UTC
+record: -1
